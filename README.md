@@ -1,42 +1,46 @@
-# leddy-mcp-server.rs
+# Leddy MCP Server
 
-Canonical public repository seed for `led-dynamo/leddy-mcp-server.rs`.
+    Read-only MCP diagnostics for LED displays, framebuffers, commands, telemetry, and fleet topology. The server is a Rust MCP process over stdio. Stdout is exclusively the JSON-RPC wire; structured diagnostics go to stderr and optional OTLP.
 
-The initial server implements newline-delimited JSON-RPC over stdio, negotiates MCP protocol revision `2025-06-18`, and exposes a read-only `zed_dependency_graph` tool. Write-capable device commands are intentionally excluded from the first release.
+    ## Tools
 
-## Canonical Zed graph
+    - `leddy_fleet_map`
+- `leddy_plan`
+- `leddy_runtime_readiness`
+- `leddy_shared_platform`
+- `leddy_lifecycle_state`
+- `leddy_safety_boundary`
 
-- `led-dynamo/leddy-clients`
-- `led-dynamo/leddy-interfaces`
-- `led-dynamo/leddy-lib`
-- `led-dynamo/leddy-cli`
-- `led-dynamo/leddy-sync`
-- `shared-auth/shared-auth-clients`
+    Every tool is read-only. Planning accepts a closed workload enum plus bounded numeric fields. The server has no arbitrary URL, command, filesystem, database, GitHub mutation, cluster mutation, or secret-value input.
 
-Publish `leddy-sync` first. Packages materialize under `.vendor/.zed`.
+    ## Product topology
 
-## Publish
+    - `leddy-api-server.rs` — message, display, and telemetry command plane
+- `leddy-interfaces` — display, command, message, and telemetry contracts
+- `leddy-lib` — framebuffer, font, layout, and scrolling renderer
+- `leddy-rasp-pi` — Raspberry Pi display agent
+- `leddy-arduino` — Arduino and ESP32 firmware
 
-Use either an authenticated GitHub CLI session or an environment-provided token:
+    ## Security boundary
 
-```bash
-# Preferred when gh is authenticated
-./publish.sh
+    - The MCP server never publishes, clears, or renders a live device command.
+- Device identifiers and message contents are excluded from telemetry.
+- Power and capacity planning requires hardware-specific review outside MCP.
 
-# Credential fallback; the token is read from the environment and never committed
-GH_TOKEN=... ./publish.sh
-```
+    The shared core is pinned at `c6101656c8227251d1dbd61df54f03a186b42ade`. It provides bounded MCP framing, explicit OTLP/gRPC traces, metrics and logs, JSON stderr diagnostics, redaction, low-cardinality tool metrics, and the formal runtime lifecycle. Each tool also owns an explicit span with `skip_all`; arguments and results are never recorded. Configuration readiness reports environment-variable presence only and performs no authentication or network request.
 
-`GITHUB_TOKEN` is accepted as a fallback variable. The publisher verifies that `leddy-sync` exists first, refuses to overwrite an existing repository, refuses dirty or non-`main` worktrees, and never places a token in the remote URL.
+    This server contains no authenticated HTTP client. If a future tool adds one, it must use fixed or strictly validated HTTP(S) origins, reject credentials/query/fragment/private/metadata targets, disable redirects and ambient proxies, keep credentials in sensitive headers, cap every response, and add adversarial tests before merge.
 
-## Validate
+    ## Shared platform knowledge
 
-```bash
-cargo fmt --all -- --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo test --all-targets --all-features
-```
+    The bounded `shared_platform` tool documents ORE Kubernetes, shared definitions, dpm, Cloudflare/Squarespace, Supabase, and Fiducia without exposing a mutation or credential surface.
 
-The five read-only `api_docs_*` tools required by `DEN-3159` are a follow-up gate; the current seed intentionally contains only `zed_dependency_graph`.
+    ## Validate
 
-Tracking: `led-dynamo/.github#18`, GitHub Project #1, and Linear `DEN-2885`.
+    ```sh
+    cargo fmt --all -- --check
+    cargo clippy --locked --all-targets --all-features -- -D warnings
+    cargo test --locked --all-targets --all-features
+    cargo build --locked --release
+    cargo audit --deny warnings
+    ```
