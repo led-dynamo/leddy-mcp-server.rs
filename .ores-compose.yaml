@@ -1,0 +1,11 @@
+schema_version: ores.compose.v1
+project: leddy-mcp-server-modularize
+allow_lazy_start: false
+
+services:
+  leddy-mcp-server-modularize:
+    name: leddy-mcp-server-modularize
+    runtime: host
+    build:
+      - ["cargo", "build", "--bins"]
+    command: ["./target/debug/leddy-mcp-server-modularize"]
