@@ -1,10 +1,10 @@
 schema_version: ores.compose.v1
-project: leddy-mcp-server.rs
+project: leddy-mcp-server
 allow_lazy_start: false
 
 services:
-  leddy-mcp-server.rs:
-    name: leddy-mcp-server.rs
+  leddy-mcp-server:
+    name: leddy-mcp-server
     runtime: host
     build:
       - ["cargo", "build", "--bins"]
