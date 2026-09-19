@@ -11,6 +11,11 @@ reconnectMinMs = 1000
 reconnectMaxMs = 30000
 
 [defaults]
-capacity = 1024
+capacity = 512
 syncMode = "read_only"
 overflowMode = "reject_and_reconcile"
+failOpenOnStartup = false
+
+[[caches]]
+name = "runtime-env"
+role = "server"
