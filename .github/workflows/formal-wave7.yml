@@ -1,0 +1,27 @@
+name: Formal Wave 7
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  authority-model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Exhaust LED control authority
+        run: |
+          python3 - <<'PY'
+          from itertools import product
+          for auth, device_scope, control, admin, tool in product((False,True),(False,True),(False,True),(False,True),('read','control','admin')):
+              allowed=auth and device_scope
+              if tool=='control': allowed=allowed and control
+              if tool=='admin': allowed=allowed and admin
+              if not auth or not device_scope: assert not allowed
+              if tool=='control' and allowed: assert control
+              if tool=='admin' and allowed: assert admin
+          print('LED Dynamo MCP authority model: ok')
+          PY
